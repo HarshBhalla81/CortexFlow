@@ -1,0 +1,33 @@
+import redis
+import time
+
+r = redis.Redis(
+    host="redis",
+    port=6379,
+    decode_responses=True,
+)
+
+def start_consumer():
+    print("Listening on agent_stream...")
+
+    last_id = "0-0"
+
+    while True:
+        try:
+            messages = r.xread(
+                {"agent_stream": last_id},
+                block=5000
+            )
+
+            if messages:
+                for stream_name, stream_messages in messages:
+                    for message_id, data in stream_messages:
+                        print(f"Received [{message_id}]: {data}")
+
+                        # Move forward in the stream
+                        last_id = message_id
+
+        except Exception as e:
+            print(f"Error: {e}")
+
+        time.sleep(1)
