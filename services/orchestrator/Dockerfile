@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+ENV PYTHONPATH=/app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY app/ .
+COPY . .
 
-CMD ["python", "main.py"]
+CMD ["python", "-u", "app/main.py"]

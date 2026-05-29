@@ -1,6 +1,6 @@
 import redis
 import time
-
+from dispatcher import Dispatcher
 r = redis.Redis(
     host="redis",
     port=6379,
@@ -11,6 +11,8 @@ def start_consumer():
     print("Listening on agent_stream...")
 
     last_id = "0-0"
+
+    dispatcher = Dispatcher()
 
     while True:
         try:
@@ -24,7 +26,14 @@ def start_consumer():
                     for message_id, data in stream_messages:
                         print(f"Received [{message_id}]: {data}")
 
-                        # Move forward in the stream
+                        task_type = data.get("task_type")
+
+                        payload = {
+                            "message": data.get("message")
+                        }
+
+                        dispatcher.dispatch(task_type, payload)
+
                         last_id = message_id
 
         except Exception as e:

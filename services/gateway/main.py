@@ -14,7 +14,10 @@ async def process_request(data: dict):
 
     r.xadd(
         "agent_stream",
-        {"request": str(data)}
+        {
+            "task_type": data.get("task_type"),
+            "message": data.get("payload", {}).get("message", "")
+        }
     )
 
     return {
