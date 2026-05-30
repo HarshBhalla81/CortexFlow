@@ -18,7 +18,7 @@ def start_consumer():
         try:
             messages = r.xread(
                 {"agent_stream": last_id},
-                block=5000
+                block=10000
             )
 
             if messages:
@@ -37,6 +37,7 @@ def start_consumer():
                         last_id = message_id
 
         except Exception as e:
-            print(f"Error: {e}")
+            if "Timeout reading from socket" not in str(e):
+                print(f"Error: {e}")
 
         time.sleep(1)

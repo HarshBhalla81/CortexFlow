@@ -1,14 +1,24 @@
 from workers.echo_worker import EchoWorker
+from registry import AgentRegistry
 
 
 class Dispatcher:
+
+    def __init__(self):
+        self.registry = AgentRegistry()
+
+        self.registry.register(
+            "echo",
+            EchoWorker()
+        )
 
     def dispatch(self, task_type, payload):
 
         print(f"[Dispatcher] Routing task: {task_type}")
 
-        if task_type == "echo":
-            worker = EchoWorker()
+        worker = self.registry.get(task_type)
+
+        if worker:
             worker.execute(payload)
 
         else:

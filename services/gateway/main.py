@@ -16,7 +16,7 @@ async def process_request(data: dict):
         "agent_stream",
         {
             "task_type": data.get("task_type"),
-            "message": data.get("payload", {}).get("message", "")
+            "message": data.get("message", "")
         }
     )
 

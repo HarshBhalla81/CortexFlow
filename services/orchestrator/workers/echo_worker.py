@@ -1,5 +1,7 @@
-class EchoWorker:
+from workers.base_worker import BaseWorker
+
+class EchoWorker(BaseWorker):
 
     def execute(self, payload):
         print("[EchoWorker] Executing task")
-        print(payload.get("message"))
+        print(payload["message"])
