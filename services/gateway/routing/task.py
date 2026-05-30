@@ -1,8 +1,7 @@
 import redis
-import uuid
 from fastapi import APIRouter
 from shared.models.task import Task
-
+import json
 router = APIRouter()
 
 
@@ -15,15 +14,16 @@ r = redis.Redis(host="redis", port=6379, decode_responses=True)
 @router.post("/request")
 async def process_request(data: Task):
 
-    payload = data.model_dump()
-    task_id = str(uuid.uuid4())
+    task = data
 
+    payload = task.model_dump()
+    task_id = payload["task_id"]
     r.xadd(
         "agent_stream",
         {
             "task_id": task_id,
             "task_type": payload["task_type"],
-            "message": payload["message"]
+            "payload": json.dumps(payload["payload"])
         }
     )
     r.set(

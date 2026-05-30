@@ -4,9 +4,10 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 
-class Task(BaseModel):
-    task_id: str = Field(default_factory=lambda: str(uuid4()))
-    task_type: str
+class Event(BaseModel):
+    event_id: str = Field(default_factory=lambda: str(uuid4()))
+    task_id: str
+    event_type: str
+    source: str
     payload: dict
-    status: str = "queued"
     timestamp: datetime = Field(default_factory=datetime.utcnow)

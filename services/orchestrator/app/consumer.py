@@ -1,6 +1,9 @@
 import redis
 import time
+import json
+from shared.models.task import Task
 from dispatcher import Dispatcher
+
 r = redis.Redis(
     host="redis",
     port=6379,
@@ -26,13 +29,25 @@ def start_consumer():
                     for message_id, data in stream_messages:
                         print(f"Received [{message_id}]: {data}")
                         
-                        task_type = data.get("task_type")
-                        task_id = data.get("task_id")
+                        try:
+                            task = Task.model_validate(
+                                {
+                                    "task_id": data.get("task_id"),
+                                    "task_type": data.get("task_type"),
+                                    "payload": json.loads(data.get("payload"))
+                                }
+                            )
 
-                        payload = {
-                            "task_id": data.get("task_id"),
-                            "message": data.get("message")
-                        }
+                        except Exception as e:
+                            print(f"[Consumer] Invalid Task: {e}")
+                            continue
+
+                        task_type = task.task_type
+                        task_id = task.task_id
+
+                        payload = task.payload.copy()
+
+                        payload["task_id"] = task.task_id
                         r.set(
                             f"task:{task_id}:status",
                             "running"

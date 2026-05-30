@@ -1,9 +1,10 @@
 from workers.echo_worker import EchoWorker
 from workers.uppercase_worker import UppercaseWorker
+from workers.embedding_worker import EmbeddingWorker
 from executor.executor import Executor
 from registry import AgentRegistry
 import redis
-
+import json
 class Dispatcher:
 
     def __init__(self):
@@ -26,6 +27,11 @@ class Dispatcher:
             UppercaseWorker()
         )
 
+        self.registry.register(
+            "embedding", 
+            EmbeddingWorker()
+        )
+
     def dispatch(self, task_type, payload):
 
         print(f"[Dispatcher] Routing task: {task_type}")
@@ -42,15 +48,11 @@ class Dispatcher:
                     payload
                 )
 
-                self.redis.set(
-                    f"result:{task_id}",
-                    result
-                )
                 print(f"[Dispatcher] task_id = {task_id}")
                 print(f"[Dispatcher] Storing result:{task_id}")
                 self.redis.set(
-                    f"task:{task_id}:status",
-                    "completed"
+                    f"result:{task_id}",
+                    json.dumps(result)
                 )
 
                 print(f"[Dispatcher] Result: {result}")
