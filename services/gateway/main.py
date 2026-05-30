@@ -1,26 +1,14 @@
 from fastapi import FastAPI
-import redis    
+
+from routing.task import router as task_router
+from routing.results import router as result_router
 
 app = FastAPI()
 
-r = redis.Redis(host="redis", port=6379, decode_responses=True)
+app.include_router(task_router)
+app.include_router(result_router)
+
 
 @app.get("/")
 async def root():
     return {"message": "Gateway Running"}
-
-@app.post("/request")
-async def process_request(data: dict):
-
-    r.xadd(
-        "agent_stream",
-        {
-            "task_type": data.get("task_type"),
-            "message": data.get("message", "")
-        }
-    )
-
-    return {
-        "status": "queued",
-        "data": data
-    }

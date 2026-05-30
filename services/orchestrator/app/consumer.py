@@ -25,13 +25,18 @@ def start_consumer():
                 for stream_name, stream_messages in messages:
                     for message_id, data in stream_messages:
                         print(f"Received [{message_id}]: {data}")
-
+                        
                         task_type = data.get("task_type")
+                        task_id = data.get("task_id")
 
                         payload = {
+                            "task_id": data.get("task_id"),
                             "message": data.get("message")
                         }
-
+                        r.set(
+                            f"task:{task_id}:status",
+                            "running"
+                        )
                         dispatcher.dispatch(task_type, payload)
 
                         last_id = message_id

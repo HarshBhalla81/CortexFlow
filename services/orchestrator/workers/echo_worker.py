@@ -4,4 +4,4 @@ class EchoWorker(BaseWorker):
 
     def execute(self, payload):
         print("[EchoWorker] Executing task")
-        print(payload["message"])
+        return payload["message"]

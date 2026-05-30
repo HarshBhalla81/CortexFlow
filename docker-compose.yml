@@ -1,7 +1,9 @@
 services:
 
   gateway:
-    build: ./services/gateway
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
     ports:
       - "8000:8000"
     platform: linux/amd64
@@ -14,6 +16,8 @@ services:
       - "6379:6379"
   
   orchestrator:
-    build: ./services/orchestrator
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
     depends_on:
       - redis
