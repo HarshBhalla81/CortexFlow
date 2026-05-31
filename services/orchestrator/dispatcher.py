@@ -54,6 +54,10 @@ class Dispatcher:
                     f"result:{task_id}",
                     json.dumps(result)
                 )
+                self.redis.set(
+                    f"task:{task_id}:status",
+                    "completed"
+                )
 
                 print(f"[Dispatcher] Result: {result}")
 
