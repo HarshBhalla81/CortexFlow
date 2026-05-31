@@ -21,3 +21,8 @@ services:
       dockerfile: services/orchestrator/Dockerfile
     depends_on:
       - redis
+    healthcheck:
+      test: ["CMD", "python", "-c", "import redis; redis.Redis(host='redis').ping()"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

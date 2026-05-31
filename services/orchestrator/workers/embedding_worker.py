@@ -1,12 +1,22 @@
+from sentence_transformers import SentenceTransformer
+
 from workers.base_worker import BaseWorker
 
 
 class EmbeddingWorker(BaseWorker):
 
+    def __init__(self):
+        self.model = SentenceTransformer(
+            "sentence-transformers/all-MiniLM-L6-v2"
+        )
+
     def execute(self, payload):
-        print("[EmbeddingWorker] Executing task")
+
+        text = payload["text"]
+
+        embedding = self.model.encode(text)
 
         return {
-            "status": "embedding worker reached",
-            "received_payload": payload
+            "embedding": embedding.tolist(),
+            "dimension": len(embedding)
         }
