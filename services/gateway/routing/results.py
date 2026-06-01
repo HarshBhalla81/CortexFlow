@@ -20,7 +20,8 @@ async def get_result(task_id: str):
         return {
             "error": "Task not found"
         }
-
+    print(type(status))
+    print(status)
     if status == "completed":
 
         result = r.get(

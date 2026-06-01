@@ -1,0 +1,5 @@
+faiss-cpu
+openai
+accelerate
+pypdf
+langchain-text-splitters

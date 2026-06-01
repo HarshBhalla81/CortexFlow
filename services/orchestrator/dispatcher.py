@@ -1,6 +1,10 @@
 from workers.echo_worker import EchoWorker
 from workers.uppercase_worker import UppercaseWorker
 from workers.embedding_worker import EmbeddingWorker
+from workers.document_worker import DocumentWorker
+from workers.retrieval_worker import RetrievalWorker
+from workers.llm_worker import LLMWorker
+from workers.rag_worker import RAGWorker
 from executor.executor import Executor
 from registry import AgentRegistry
 import redis
@@ -30,6 +34,23 @@ class Dispatcher:
         self.registry.register(
             "embedding", 
             EmbeddingWorker()
+        )
+
+        self.registry.register(
+            "document",
+            DocumentWorker()
+        )
+        self.registry.register(
+            "retrieve",
+            RetrievalWorker()
+        )
+        self.registry.register(
+            "llm",
+            LLMWorker()
+        )
+        self.registry.register(
+            "rag",
+            RAGWorker()
         )
 
     def dispatch(self, task_type, payload):

@@ -6,7 +6,9 @@ ENV PYTHONPATH=/app
 COPY services/orchestrator/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download sentence-transformers model to avoid timeout during first run
+COPY services/orchestrator/requirements-ai.txt .
+RUN pip install --no-cache-dir -r requirements-ai.txt
+
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 
 COPY services/orchestrator .
