@@ -12,6 +12,10 @@ class RetrievalWorker(BaseWorker):
     def execute(self, payload):
 
         query = payload["query"]
+        
+        print(
+            f"Vectors: {vector_store.index.ntotal}"
+        )
 
         embedding_result = self.embedding_worker.execute(
             {

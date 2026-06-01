@@ -1,4 +1,4 @@
-class AgentRegistry:
+class WorkerRegistry:
     def __init__(self):
         self._workers = {}
 
