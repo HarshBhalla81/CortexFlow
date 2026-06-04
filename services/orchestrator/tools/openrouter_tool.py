@@ -1,7 +1,9 @@
+import os
+import time
+
 from openai import OpenAI
 from tools.base_tool import BaseTool
-import os
-
+from shared.metrics import metrics
 
 class OpenRouterTool(BaseTool):
 
@@ -14,9 +16,25 @@ class OpenRouterTool(BaseTool):
 
     def run(self, messages):
 
-        response = self.client.chat.completions.create(
-            model="deepseek/deepseek-chat-v3-0324",
-            messages=messages
-        )
+        start = time.time()
 
-        return response.choices[0].message.content
+        try:
+
+            response = self.client.chat.completions.create(
+                model="deepseek/deepseek-chat-v3-0324",
+                messages=messages
+            )
+
+            metrics.record_provider(
+                "groq"
+            )
+
+            return response.choices[0].message.content
+
+        except Exception:
+
+            metrics.record_provider_failure(
+                "groq"
+            )
+
+            raise

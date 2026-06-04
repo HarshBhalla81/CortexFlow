@@ -1,7 +1,9 @@
+import os
+import time
+
+from shared.metrics import metrics
 from openai import OpenAI
 from tools.base_tool import BaseTool
-import os
-
 
 class GroqTool(BaseTool):
 
@@ -14,9 +16,25 @@ class GroqTool(BaseTool):
 
     def run(self, messages):
 
-        response = self.client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages
-        )
+        start = time.time()
 
-        return response.choices[0].message.content
+        try:
+
+            response = self.client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=messages
+                )
+
+            metrics.record_provider(
+                "groq"
+            )
+
+            return response.choices[0].message.content
+
+        except Exception:
+
+            metrics.record_provider_failure(
+                "groq"
+            )
+
+            raise

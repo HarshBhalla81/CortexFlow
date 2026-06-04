@@ -149,9 +149,6 @@ class Dispatcher:
         component = worker or agent
 
         component_type = None
-        logger.info(
-            f"Resolved {task_type} to {component_type}"
-        )
 
         if self.worker_registry.contains(task_type):
             component_type = "worker"
@@ -160,6 +157,10 @@ class Dispatcher:
         elif self.agent_registry.contains(task_type):
             component_type = "agent"
             metrics.record_agent(task_type)
+        
+        logger.info(
+            f"Resolved {task_type} to {component_type}"
+        )
 
         if component:
             start_time = time.time()
