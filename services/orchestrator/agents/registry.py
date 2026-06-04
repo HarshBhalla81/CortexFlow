@@ -11,3 +11,5 @@ class AgentRegistry:
 
     def exists(self, name):
         return name in self.agents
+    def contains(self, task_type):
+        return task_type in self.agents

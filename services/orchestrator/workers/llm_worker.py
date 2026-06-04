@@ -1,5 +1,5 @@
 from workers.base_worker import BaseWorker
-
+from shared.metrics import metrics
 from tools.groq_tool import GroqTool
 from tools.openrouter_tool import OpenRouterTool
 
@@ -13,6 +13,14 @@ class LLMWorker(BaseWorker):
     def execute(self, payload):
 
         provider = payload.get("provider", "groq")
+        if provider == "groq":
+            metrics.record_provider(
+                "groq"
+            )
+        if provider == "openrouter":
+            metrics.record_provider(
+                "openrouter"
+            )
         messages = payload["messages"]
         
         if provider == "groq":

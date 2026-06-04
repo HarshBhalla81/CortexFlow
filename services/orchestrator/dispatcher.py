@@ -1,5 +1,6 @@
 import redis
 import json
+import time
 
 # adding all workers
 from workers.registry import WorkerRegistry
@@ -27,6 +28,8 @@ from agents.summarization_agent import SummarizationAgent
 from agents.workflow_agent import WorkflowAgent
 from executor.executor import Executor
 
+# for evaluatinng peformance of workers, agenst, and multi-agents
+from shared.metrics import metrics #metrics is an instnce of metrics_manager class
 class Dispatcher:
 
     def __init__(self):
@@ -143,8 +146,17 @@ class Dispatcher:
 
         component = worker or agent
 
-        if component:
+        component_type = None
+        if self.worker_registry.contains(task_type):
+            component_type = "worker"
+            metrics.record_worker(task_type)
 
+        elif self.agent_registry.contains(task_type):
+            component_type = "agent"
+            metrics.record_agent(task_type)
+
+        if component:
+            start_time = time.time()
             try:
 
                 result = self.executor.run(
@@ -174,7 +186,23 @@ class Dispatcher:
                     f"[Dispatcher] Result: {result}"
                 )
 
+                metrics.record_task()
+                metrics.record_throughput()
             except Exception as e:
+                
+                metrics.record_failure()
+
+                if component_type == "worker":
+
+                    metrics.record_worker_failure(
+                        task_type
+                    )
+
+                elif component_type == "agent":
+
+                    metrics.record_agent_failure(
+                        task_type
+                    )
 
                 self.redis.set(
                     f"task:{task_id}:status",
@@ -185,8 +213,27 @@ class Dispatcher:
                     f"[Dispatcher] Error: {e}"
                 )
 
-        else:
 
+            finally:
+                latency = time.time() - start_time
+                metrics.record_latency(latency)
+
+                if component_type == "worker":
+
+                    metrics.record_worker_latency(
+                        task_type,
+                        latency
+                    )
+
+                elif component_type == "agent":
+
+                    metrics.record_agent_latency(
+                        task_type,
+                        latency
+                    )
+
+        else:
+            metrics.record_failure()
             print(
                 f"[Dispatcher] Unknown task type: {task_type}"
             )

@@ -7,3 +7,5 @@ class WorkerRegistry:
 
     def get(self, task_type):
         return self._workers.get(task_type)
+    def contains(self, task_type):
+        return task_type in self._workers
