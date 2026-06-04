@@ -1,5 +1,4 @@
 from agents.base_agent import BaseAgent
-print("Loading PlannerAgent")
 
 class PlannerAgent(BaseAgent):
 
@@ -7,7 +6,7 @@ class PlannerAgent(BaseAgent):
         self.llm_worker = llm_worker
 
     def run(self, payload):
-
+        raise Exception("TEST RETRY")
         task = payload["task"]
 
         return self.llm_worker.execute(

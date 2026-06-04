@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 from agents.base_agent import BaseAgent
 
 
@@ -18,8 +21,9 @@ class WorkflowAgent(BaseAgent):
     def run(self, payload):
 
         query = payload["query"]
+        logger.info(f"Workflow started query='{query}'")
 
-        print("[Workflow] Planning")
+        logger.info("[Workflow] Planning")
 
         plan = self.planner.run(
             {
@@ -27,7 +31,7 @@ class WorkflowAgent(BaseAgent):
             }
         )
 
-        print("[Workflow] Researching")
+        logger.info("[Workflow] Researching")
 
         research = self.research.run(
             {
@@ -35,7 +39,7 @@ class WorkflowAgent(BaseAgent):
             }
         )
 
-        print("[Workflow] Summarizing")
+        logger.info("[Workflow] Summarizing")
 
         summary = self.summary.run(
             {
@@ -43,14 +47,16 @@ class WorkflowAgent(BaseAgent):
             }
         )
 
-        print("[Workflow] Critiquing")
+        logger.info("[Workflow] Critiquing")
 
         critique = self.critic.run(
             {
                 "response": summary["response"]
             }
         )
-
+        
+        logger.info("Workflow completed successfully")
+        
         return {
             "plan": plan,
             "research": research,

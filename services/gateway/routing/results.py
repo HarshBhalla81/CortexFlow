@@ -1,7 +1,9 @@
 import redis
+import logging
 from fastapi import APIRouter
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 r = redis.Redis(
     host="redis",
@@ -20,8 +22,8 @@ async def get_result(task_id: str):
         return {
             "error": "Task not found"
         }
-    print(type(status))
-    print(status)
+    logger.info(f"Status type: {type(status)}")
+    logger.info(f"Task status: {status}")
     if status == "completed":
 
         result = r.get(

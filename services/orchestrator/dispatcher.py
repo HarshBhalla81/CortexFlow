@@ -2,6 +2,8 @@ import redis
 import json
 import time
 
+import logging
+logger = logging.getLogger(__name__)
 # adding all workers
 from workers.registry import WorkerRegistry
 
@@ -147,6 +149,10 @@ class Dispatcher:
         component = worker or agent
 
         component_type = None
+        logger.info(
+            f"Resolved {task_type} to {component_type}"
+        )
+
         if self.worker_registry.contains(task_type):
             component_type = "worker"
             metrics.record_worker(task_type)
@@ -164,12 +170,12 @@ class Dispatcher:
                     payload
                 )
 
-                print(
-                    f"[Dispatcher] task_id = {task_id}"
+                logger.info(
+                    f"Executing task_id={task_id} task_type={task_type}"
                 )
 
-                print(
-                    f"[Dispatcher] Storing result:{task_id}"
+                logger.info(
+                    f"Storing result for task_id={task_id}"
                 )
 
                 self.redis.set(
@@ -181,11 +187,17 @@ class Dispatcher:
                     f"task:{task_id}:status",
                     "completed"
                 )
-
-                print(
-                    f"[Dispatcher] Result: {result}"
+                
+                # printing the whole result is not required now for agents instear we can print a few lines for debugging
+                # print(
+                #     f"[Dispatcher] Result: {result}"
+                # )
+                logger.info(
+                    f"Task completed task_id={task_id}"
                 )
-
+                logger.debug(
+                    f"Result preview: {str(result)[:200]}"
+                )
                 metrics.record_task()
                 metrics.record_throughput()
             except Exception as e:
@@ -203,17 +215,14 @@ class Dispatcher:
                     metrics.record_agent_failure(
                         task_type
                     )
-
+                logger.exception(
+                    f"Task failed task_id={task_id} task_type={task_type}"
+                )
                 self.redis.set(
                     f"task:{task_id}:status",
                     "failed"
                 )
-
-                print(
-                    f"[Dispatcher] Error: {e}"
-                )
-
-
+                raise
             finally:
                 latency = time.time() - start_time
                 metrics.record_latency(latency)
@@ -231,9 +240,11 @@ class Dispatcher:
                         task_type,
                         latency
                     )
-
+                logger.info(
+                    f"Task latency task_id={task_id}: {latency:.3f}s"
+                )
         else:
             metrics.record_failure()
-            print(
-                f"[Dispatcher] Unknown task type: {task_type}"
+            logger.error(
+                f"Unknown task type: {task_type}"
             )

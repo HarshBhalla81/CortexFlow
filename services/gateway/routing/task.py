@@ -1,12 +1,10 @@
 import redis
+import json
+
 from fastapi import APIRouter
 from shared.models.task import Task
-import json
+
 router = APIRouter()
-
-
-
-print("Shared Task Model Imported Successfully")
 
 r = redis.Redis(host="redis", port=6379, decode_responses=True)
 

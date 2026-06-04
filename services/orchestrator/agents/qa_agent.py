@@ -1,5 +1,4 @@
 from agents.base_agent import BaseAgent
-print("Loading QAAgent")
 
 class QAAgent(BaseAgent):
 

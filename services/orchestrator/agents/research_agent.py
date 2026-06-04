@@ -1,5 +1,5 @@
 from agents.base_agent import BaseAgent
-print("Loading ResearchAgent")
+
 class ResearchAgent(BaseAgent):
 
     def __init__(
@@ -7,7 +7,6 @@ class ResearchAgent(BaseAgent):
         retrieval_worker,
         llm_worker
     ):
-        print("Initializing ResearchAgent")
         self.retrieval = retrieval_worker
         self.llm = llm_worker
 
