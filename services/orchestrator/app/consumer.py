@@ -5,6 +5,10 @@ import logging
 
 from shared.models.task import Task
 from dispatcher import Dispatcher
+from events.event_publisher import EventPublisher
+from events.event_types import EventTypes
+
+event_publisher = EventPublisher()
 
 r = redis.Redis(
     host="redis",
@@ -35,14 +39,21 @@ def start_consumer():
                     for message_id, data in stream_messages:
                         logger.info(
                             f"Received task message_id={message_id} task_type={data.get('task_type')}"
-                        )
-                                                
+                        )                 
                         try:
                             task = Task.model_validate(
                                 {
                                     "task_id": data.get("task_id"),
                                     "task_type": data.get("task_type"),
                                     "payload": json.loads(data.get("payload"))
+                                }
+                            )
+                            event_publisher.publish(
+                                EventTypes.TASK_RECEIVED,
+                                task.task_id,
+                                source="consumer",
+                                metadata={
+                                    "task_type": task.task_type
                                 }
                             )
                             logger.info(
@@ -59,6 +70,7 @@ def start_consumer():
                         payload = task.payload.copy()
                         payload.setdefault("retry_count", 0)
 
+                        payload["task_type"] = task.task_type
                         payload["task_id"] = task.task_id
                         r.set(
                             f"task:{task_id}:status",
@@ -76,7 +88,7 @@ def start_consumer():
                             )
 
 
-                        except Exception:
+                        except Exception as e:
 
                             retries = payload.get(
                                 "retry_count",
@@ -90,6 +102,16 @@ def start_consumer():
                             if retries < MAX_RETRIES:
 
                                 payload["retry_count"] = retries + 1
+                                event_publisher.publish(
+                                    EventTypes.RETRY_TRIGGERED,
+                                    task.task_id,
+                                    source="consumer",
+                                    metadata={
+                                        "retry_count": retries + 1,
+                                        "task_type": task.task_type,
+                                        "error": str(e)
+                                    }
+                                )
                                 logger.info(
                                     f"Requeueing task_id={task_id} retry={retries + 1}"
                                 )

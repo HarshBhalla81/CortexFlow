@@ -36,4 +36,5 @@ class ResearchAgent(BaseAgent):
                 ]
             }
         )
+        
         return response

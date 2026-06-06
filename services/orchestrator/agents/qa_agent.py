@@ -11,6 +11,7 @@ class QAAgent(BaseAgent):
         self.llm_worker = llm_worker
 
     def run(self, payload):
+        
 
         question = payload["question"]
 
@@ -25,7 +26,7 @@ class QAAgent(BaseAgent):
             for doc in docs["documents"]
         )
 
-        return self.llm_worker.execute(
+        answer = self.llm_worker.execute(
             {
                 "messages": [
                     {
@@ -41,3 +42,6 @@ class QAAgent(BaseAgent):
                 ]
             }
         )
+
+
+        return answer

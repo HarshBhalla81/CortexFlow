@@ -10,7 +10,7 @@ class CriticAgent(BaseAgent):
 
         response = payload["response"]
 
-        return self.llm_worker.execute(
+        result =  self.llm_worker.execute(
             {
                 "messages": [
                     {
@@ -31,3 +31,6 @@ class CriticAgent(BaseAgent):
                 ]
             }
         )
+
+
+        return result

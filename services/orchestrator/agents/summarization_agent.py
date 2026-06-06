@@ -10,7 +10,7 @@ class SummarizationAgent(BaseAgent):
 
         text = payload["text"]
 
-        return self.llm_worker.execute(
+        summary = self.llm_worker.execute(
             {
                 "messages": [
                     {
@@ -24,3 +24,5 @@ class SummarizationAgent(BaseAgent):
                 ]
             }
         )
+        
+        return summary

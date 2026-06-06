@@ -8,7 +8,7 @@ class PlannerAgent(BaseAgent):
     def run(self, payload):
         task = payload["task"]
 
-        return self.llm_worker.execute(
+        plan =  self.llm_worker.execute(
             {
                 "messages": [
                     {
@@ -23,3 +23,5 @@ class PlannerAgent(BaseAgent):
                 ]
             }
         )
+
+        return plan

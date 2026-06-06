@@ -57,9 +57,12 @@ class WorkflowAgent(BaseAgent):
         
         logger.info("Workflow completed successfully")
         
-        return {
+        workflow = {
             "plan": plan,
             "research": research,
             "summary": summary,
             "critique": critique
         }
+
+
+        return workflow

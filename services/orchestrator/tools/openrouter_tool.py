@@ -33,7 +33,7 @@ class OpenRouterTool(BaseTool):
 
         except Exception:
 
-            metrics.record_provider_failure(
+            metrics.record_failure(
                 "groq"
             )
 

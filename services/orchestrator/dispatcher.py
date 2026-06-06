@@ -32,6 +32,11 @@ from executor.executor import Executor
 
 # for evaluatinng peformance of workers, agenst, and multi-agents
 from shared.metrics import metrics #metrics is an instnce of metrics_manager class
+
+# to publish events in redis stream
+from events.event_publisher import event_publisher
+from events.event_types import EventTypes
+
 class Dispatcher:
 
     def __init__(self):
@@ -39,7 +44,7 @@ class Dispatcher:
         self.worker_registry = WorkerRegistry()
         self.agent_registry = AgentRegistry()
         self.executor = Executor()
-
+        #self.event_publisher = EventPublisher()
         self.redis = redis.Redis(
             host="redis",
             port=6379,
@@ -133,7 +138,7 @@ class Dispatcher:
         )
 
     def dispatch(self, task_type, payload):
-
+        
         worker = self.worker_registry.get(
         task_type
         )
@@ -165,10 +170,19 @@ class Dispatcher:
         if component:
             start_time = time.time()
             try:
-
+                event_publisher.publish(
+                    EventTypes.TASK_STARTED,
+                    task_id,
+                    source="dispatcher",
+                    metadata={
+                        "task_type": task_type
+                    }
+                )
                 result = self.executor.run(
                     component,
-                    payload
+                    payload,
+                    task_id,
+                    task_type
                 )
 
                 logger.info(
@@ -201,6 +215,14 @@ class Dispatcher:
                 )
                 metrics.record_task()
                 metrics.record_throughput()
+                event_publisher.publish(
+                    EventTypes.TASK_COMPLETED,
+                    task_id,
+                    source="dispatcher",
+                    metadata={
+                        "task_type": task_type
+                    }
+                )
             except Exception as e:
                 
                 metrics.record_failure()
@@ -222,6 +244,15 @@ class Dispatcher:
                 self.redis.set(
                     f"task:{task_id}:status",
                     "failed"
+                )
+                event_publisher.publish(
+                    EventTypes.TASK_FAILED,
+                    task_id,
+                    source="dispatcher",
+                    metadata={
+                        "task_type": task_type,
+                        "error": str(e)
+                    }
                 )
                 raise
             finally:
