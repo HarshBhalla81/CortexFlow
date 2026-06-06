@@ -56,7 +56,15 @@ class GraphAnalyzer:
             ...
         }
         """
+        def ingest(self, event):
 
+            event_type = event.get("event_type")
+
+            if event_type not in (
+                "AGENT_COMPLETED",
+                "WORKER_COMPLETED"
+            ):
+                return
         task_id = event.get("task_id")
         component = event.get("component")
 
@@ -156,3 +164,4 @@ class GraphAnalyzer:
         self.task_graphs.pop(task_id, None)
         self.task_paths.pop(task_id, None)
         self.last_component.pop(task_id, None)
+
