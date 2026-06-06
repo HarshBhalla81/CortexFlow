@@ -15,7 +15,7 @@ class AnomalyDetector:
 
         self.samples_seen = 0
 
-        self.min_training_samples = 100
+        self.min_training_samples = 20
 
     def features_to_vector(self, features):
         return [

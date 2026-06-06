@@ -1,7 +1,7 @@
 import time
 
 from collections import deque
-from models import EventFeatures
+from watchdog.models import EventFeatures
 from statistics import mean
 
 class FeatureExtractor:
