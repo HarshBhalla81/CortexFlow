@@ -8,7 +8,7 @@ class AlertManager:
 
         self.redis = redis_client
 
-    def publish_alert(self, lert_type, message, severity="MEDIUM", metadata=None):
+    def publish_alert(self, alert_type, message, severity="MEDIUM", metadata=None):
         if metadata is None:
 
             metadata = {}

@@ -1,3 +1,12 @@
 redis
 pydantic
 sentence-transformers
+faiss-cpu
+openai
+accelerate
+pypdf
+langchain-text-splitters
+scikit-learn
+numpy
+networkx
+scipy

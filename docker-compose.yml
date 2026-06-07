@@ -28,3 +28,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    volumes:
+      - ./services/orchestrator:/app
+      - ./shared:/app/shared
+      
+  watchdog:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+
+    command: python watchdog_runner.py
+
+    depends_on:
+      - redis
+
+    environment:
+      - REDIS_HOST=redis
+
+    volumes:
+      - ./services/orchestrator:/app
+      - ./shared:/app/shared

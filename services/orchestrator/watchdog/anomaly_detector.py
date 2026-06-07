@@ -10,12 +10,10 @@ class AnomalyDetector:
             contamination=0.05,
             random_state=42
         )
-
         self.training_buffer = deque(maxlen=1000)
-
         self.samples_seen = 0
-
         self.min_training_samples = 20
+        self.is_trained = False
 
     def features_to_vector(self, features):
         return [
@@ -30,6 +28,11 @@ class AnomalyDetector:
         ]
     
     def update(self, features):
+        print(
+            f"[ANOMALY] "
+            f"buffer={len(self.training_buffer)} "
+            f"trained={self.is_trained}"
+        )
         self.samples_seen += 1
         vector = self.features_to_vector(
             features
@@ -47,6 +50,9 @@ class AnomalyDetector:
             )
 
             self.is_trained = True
+            print(
+                "[ANOMALY] Model trained successfully"
+            )
         elif (self.is_trained and self.samples_seen % 100 == 0):
             self.model.fit(
                 np.array(

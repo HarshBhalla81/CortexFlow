@@ -23,6 +23,10 @@ class BDHWatchdog:
         self.feature_extractor.ingest(event)
         self.graph_analyzer.ingest(event)
         features = (self.feature_extractor.build_feature_vector())
+        print(
+            f"[WATCHDOG] Features: "
+            f"{features}"
+        )
         self.anomaly_detector.update(features)
 
         #cycle detection
@@ -34,6 +38,7 @@ class BDHWatchdog:
         result = (self.anomaly_detector.score(features))  
 
         if result["is_anomaly"]: 
+            print(f"[DEBUG] result={result}")
             self.alert_manager.anomaly(result["score"])
 
     def run(self):
@@ -54,5 +59,9 @@ class BDHWatchdog:
 
                     self.last_id = message_id
                     self.process_event(data)
+                    print(
+                        f"[WATCHDOG] Event Received: "
+                        f"{data}"
+                    )
 
             
