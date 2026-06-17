@@ -64,4 +64,35 @@ class BDHWatchdog:
                         f"{data}"
                     )
 
+    def run_csv(self, filepath="/app/data/tool_events_watchdog.csv"):
+        import time
+        import os
+        last_pos = 0
+        while True:
+            if not os.path.exists(filepath):
+                time.sleep(1)
+                continue
+            with open(filepath, 'r') as f:
+                f.seek(last_pos)
+                lines = f.readlines()
+                last_pos = f.tell()
+                
+                if not lines:
+                    time.sleep(1)
+                    continue
+                    
+                for line in lines:
+                    # simplistic csv parse, assume columns: session_id, task_id, event_type, payload, timestamp
+                    parts = line.strip().split(',')
+                    if len(parts) >= 5 and parts[0] != "session_id": # skip header
+                        event = {
+                            "session_id": parts[0],
+                            "task_id": parts[1],
+                            "event_type": parts[2],
+                            "payload": parts[3],
+                            "timestamp": parts[4]
+                        }
+                        self.process_event(event)
+                        print(f"[WATCHDOG] OOB Event Received: {event}")
+
             

@@ -7,4 +7,4 @@ redis_client = redis.Redis(
     decode_responses=True
 )
 watchdog = BDHWatchdog(redis_client)
-watchdog.run()
+watchdog.run_csv()
