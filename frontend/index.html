@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Support Tiering - Pathway Gateway</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="orb"></div>
+                <h1>CortexFlow <span>Gateway</span></h1>
+            </div>
+            <div class="controls">
+                <button id="stress-btn" class="btn primary">Launch Stress Test</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="metrics-panel">
+                <div class="metric-card">
+                    <h3>Throughput</h3>
+                    <div class="value" id="eps-val">0 <span class="unit">EPS</span></div>
+                </div>
+                <div class="metric-card">
+                    <h3>Latency (TTFT)</h3>
+                    <div class="value" id="ttft-val">-- <span class="unit">ms</span></div>
+                </div>
+                <div class="metric-card alert">
+                    <h3>Watchdog Alerts</h3>
+                    <div class="value" id="alerts-val">0</div>
+                </div>
+            </div>
+
+            <div class="streams-container">
+                <div class="stream-box">
+                    <h2>Live Support Tickets</h2>
+                    <div id="tickets-stream" class="log-window">
+                        <div class="empty-state">Awaiting inbound traffic...</div>
+                    </div>
+                </div>
+                
+                <div class="stream-box right">
+                    <h2>Agent Invocations & Tools</h2>
+                    <div id="agent-stream" class="log-window">
+                        <div class="empty-state">No agent activity...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
