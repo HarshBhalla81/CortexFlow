@@ -1,0 +1,7 @@
+ONLY read these files and tell me how these new code files are interacting with my system.
+give me a workflow of how my infrasrcuture is working right now.
+
+services/gateway/main.py
+services/pathway_engine/main.py
+tests/test_bridge.py
+tests/test_pathway_stream.py
