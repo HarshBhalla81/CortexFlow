@@ -14,7 +14,6 @@ services:
     environment:
       - PATHWAY_URL=http://pathway_engine:8080/
     depends_on:
-      - redis
       - pathway_engine
     networks:
       - cortex-net
@@ -35,33 +34,41 @@ services:
     networks:
       - cortex-net
 
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
-    networks:
-      - cortex-net
+
 
 
   watchdog:
     build:
       context: .
       dockerfile: services/orchestrator/Dockerfile
-
-    command: python services/orchestrator/watchdog_runner.py
-
-    depends_on:
-      - redis
-
-    environment:
-      - REDIS_HOST=redis
-    
+    container_name: cortex_watchdog
+    command: ["python", "watchdog_runner.py"]
     env_file:
       - .env
-
+    depends_on:
+      - pathway_engine
     volumes:
       - ./services/orchestrator:/app/services/orchestrator
       - ./shared:/app/shared
+      - ./data:/app/data
+    networks:
+      - cortex-net
+
+  agent_worker:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    container_name: cortex_agent_worker
+    command: ["python", "agent_worker.py"]
+    env_file:
+      - .env
+    depends_on:
+      - gateway
+      - pathway_engine
+    volumes:
+      - ./services/orchestrator:/app/services/orchestrator
+      - ./shared:/app/shared
+      - ./data:/app/data
     networks:
       - cortex-net
 
