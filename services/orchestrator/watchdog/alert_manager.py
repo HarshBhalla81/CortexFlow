@@ -1,16 +1,14 @@
-import redis
-
+import json
 from datetime import datetime
+import httpx
 
 class AlertManager:
 
-    def __init__(self, redis_client):
-
-        self.redis = redis_client
+    def __init__(self, redis_client=None):
+        self.gateway_url = "http://gateway:8000/process"
 
     def publish_alert(self, alert_type, message, severity="MEDIUM", metadata=None):
         if metadata is None:
-
             metadata = {}
         
         alert = {
@@ -18,12 +16,19 @@ class AlertManager:
             "alert_type": alert_type,
             "severity": severity,
             "message": message,
-            "metadata": str(metadata)
+            "metadata": metadata
         }
-        self.redis.xadd(
-            "alerts_stream",
-            alert
-        )
+        print(f"[WATCHDOG ALERT] {alert}")
+        
+        # Optionally forward to gateway if needed
+        try:
+            httpx.post(self.gateway_url, json={
+                "task_id": "watchdog",
+                "task_type": "anomaly_alert",
+                "payload": alert
+            })
+        except:
+            pass
     
     def reasoning_loop(self, task_id):
         self.publish_alert(

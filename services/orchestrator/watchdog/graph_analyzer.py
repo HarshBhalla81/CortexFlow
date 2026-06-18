@@ -1,10 +1,11 @@
 # watchdog/graph_analyzer.py
 
 from collections import defaultdict
-# to detect cycles i will be treating a sequence of events as a graph where 
-# each worker/agent in the event denotes a node in the graph
-# since we this forms a directed graph we can use dfs to find cycles in the graph
-# for directed graph we use a stack to detect a cycle in the same recurscive path
+# To detect cycles, we treat a sequence of events as a graph where
+# each worker/agent in the event denotes a node in the graph.
+# Since this forms a directed graph, we use DFS to find cycles.
+# For directed graphs, we use a recursion stack to detect cycles in the same path.
+
 
 class GraphAnalyzer:
 
@@ -47,40 +48,26 @@ class GraphAnalyzer:
 
     def ingest(self, event):
         """
-        Consumes an event from events_stream.
-
-        Expected fields:
-        {
-            "task_id": "...",
-            "component": "...",
-            ...
-        }
+        Consumes an event from the event stream and builds
+        a directed graph of component handoffs per task.
         """
-        def ingest(self, event):
-
-            event_type = event.get("event_type")
-
-            if event_type not in (
-                "AGENT_COMPLETED",
-                "WORKER_COMPLETED"
-            ):
-                return
         task_id = event.get("task_id")
-        component = event.get("component")
+        # Use event_type as the component/node if no explicit component field
+        component = event.get("component") or event.get("event_type")
 
         if not task_id or not component:
             return
 
         self.task_paths[task_id].append(component)
 
-        # first node for this task
+        # First node for this task
         if task_id not in self.last_component:
             self.last_component[task_id] = component
             return
 
         previous = self.last_component[task_id]
 
-        # add directed edge
+        # Add directed edge (previous -> current)
         if component not in self.task_graphs[task_id][previous]:
             self.task_graphs[task_id][previous].append(
                 component
@@ -164,4 +151,3 @@ class GraphAnalyzer:
         self.task_graphs.pop(task_id, None)
         self.task_paths.pop(task_id, None)
         self.last_component.pop(task_id, None)
-

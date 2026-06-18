@@ -1,10 +1,6 @@
-import redis
-
+import asyncio
 from watchdog.watchdog import BDHWatchdog
-redis_client = redis.Redis(
-    host="redis",
-    port=6379,
-    decode_responses=True
-)
-watchdog = BDHWatchdog(redis_client)
-watchdog.run_csv()
+
+print("[WATCHDOG RUNNER] Booting up neural watchdog (async mode)...")
+watchdog = BDHWatchdog()
+asyncio.run(watchdog.run_csv())
