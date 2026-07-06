@@ -10,6 +10,11 @@ services:
       dockerfile: services/gateway/Dockerfile
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     platform: linux/amd64
     environment:
       - PATHWAY_URL=http://pathway_engine:8080/

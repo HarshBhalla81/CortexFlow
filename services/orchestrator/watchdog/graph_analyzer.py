@@ -1,58 +1,20 @@
-# watchdog/graph_analyzer.py
-
 from collections import defaultdict
-# To detect cycles, we treat a sequence of events as a graph where
-# each worker/agent in the event denotes a node in the graph.
-# Since this forms a directed graph, we use DFS to find cycles.
-# For directed graphs, we use a recursion stack to detect cycles in the same path.
-
 
 class GraphAnalyzer:
-
     def __init__(self):
-        """
-        task_graphs:
-        {
-            task_id: {
-                node: [neighbors]
-            }
-        }
-
-        Example:
-        {
-            "task_1": {
-                "PlannerAgent": ["ResearchAgent"],
-                "ResearchAgent": ["CriticAgent"],
-                "CriticAgent": ["PlannerAgent"]
-            }
-        }
-        """
-        self.task_graphs = defaultdict(
-            lambda: defaultdict(list)
-        )
-
-        """
-        Stores last component seen for each task.
-
-        Used to build edges:
-
-        Planner -> Research
-        Research -> Critic
-        """
+        # Global transition counts: transition_counts[from_node][to_node]
+        self.transition_counts = defaultdict(lambda: defaultdict(int))
+        self.state_totals = defaultdict(int)
+        
+        # Last component seen for each task
         self.last_component = {}
-
-        """
-        Useful for debugging and future visualization.
-        """
         self.task_paths = defaultdict(list)
+        
+        # Minimal historical samples before flagging low-probability transitions
+        self.min_samples = 3
 
     def ingest(self, event):
-        """
-        Consumes an event from the event stream and builds
-        a directed graph of component handoffs per task.
-        """
         task_id = event.get("task_id")
-        # Use event_type as the component/node if no explicit component field
         component = event.get("component") or event.get("event_type")
 
         if not task_id or not component:
@@ -60,94 +22,44 @@ class GraphAnalyzer:
 
         self.task_paths[task_id].append(component)
 
-        # First node for this task
         if task_id not in self.last_component:
             self.last_component[task_id] = component
             return
 
         previous = self.last_component[task_id]
 
-        # Add directed edge (previous -> current)
-        if component not in self.task_graphs[task_id][previous]:
-            self.task_graphs[task_id][previous].append(
-                component
-            )
-
+        # Increment Markov transitions globally
+        self.transition_counts[previous][component] += 1
+        self.state_totals[previous] += 1
+        
         self.last_component[task_id] = component
 
-    def detect_cycle(self, task_id):
+    def get_transition_probability(self, from_node, to_node):
+        total = self.state_totals.get(from_node, 0)
+        if total == 0:
+            return 1.0  # unknown, assume valid
+        return self.transition_counts[from_node][to_node] / total
+
+    def detect_abnormal_transition(self, task_id):
         """
-        Detect reasoning loops using DFS.
-
-        Returns:
-            True  -> cycle exists
-            False -> no cycle
+        Replaces rigid cycle detection. Returns True if the latest transition 
+        is statistically abnormal (probability < 0.05) indicating behavioral drift.
         """
-
-        graph = self.task_graphs.get(task_id)
-
-        if not graph:
+        path = self.task_paths.get(task_id, [])
+        if len(path) < 2:
             return False
-
-        visited = set()
-        recursion_stack = set()
-
-        def dfs(node):
-
-            visited.add(node)
-            recursion_stack.add(node)
-
-            for neighbor in graph.get(node, []):
-
-                if neighbor not in visited:
-
-                    if dfs(neighbor):
-                        return True
-
-                elif neighbor in recursion_stack:
-                    return True
-
-            recursion_stack.remove(node)
-
-            return False
-
-        for node in graph:
-
-            if node not in visited:
-
-                if dfs(node):
-                    return True
-
+            
+        previous = path[-2]
+        current = path[-1]
+        
+        # Only evaluate if we have enough historical data for the 'previous' state
+        if self.state_totals.get(previous, 0) >= self.min_samples:
+            prob = self.get_transition_probability(previous, current)
+            if prob < 0.05:
+                return True
+                
         return False
 
-    def get_graph(self, task_id):
-        """
-        Returns graph for debugging.
-        """
-
-        return dict(
-            self.task_graphs.get(task_id, {})
-        )
-
-    def get_path(self, task_id):
-        """
-        Returns execution path.
-
-        Example:
-        [
-            PlannerAgent,
-            ResearchAgent,
-            CriticAgent
-        ]
-        """
-
-        return self.task_paths.get(task_id, [])
-
     def clear_task(self, task_id):
-        """
-        Cleanup after task completion.
-        """
-
-        self.task_graphs.pop(task_id, None)
         self.task_paths.pop(task_id, None)
         self.last_component.pop(task_id, None)

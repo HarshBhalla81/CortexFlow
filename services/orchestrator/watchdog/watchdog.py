@@ -1,9 +1,11 @@
 import asyncio
 import os
+import json
 from watchdog.feature_extractor import FeatureExtractor
 from watchdog.graph_analyzer import GraphAnalyzer
 from watchdog.anomaly_detector import AnomalyDetector
 from watchdog.alert_manager import AlertManager
+from watchdog.semantic_analyzer import SemanticAnalyzer
 
 
 class BDHWatchdog:
@@ -13,46 +15,90 @@ class BDHWatchdog:
         self.graph_analyzer = GraphAnalyzer()
         self.anomaly_detector = AnomalyDetector()
         self.alert_manager = AlertManager()
+        self.semantic_analyzer = SemanticAnalyzer()
         self.last_id = "0"
         self.events_processed = 0
 
     def process_event(self, event):
-        """Process a single event through the full watchdog pipeline."""
+        """Process a single event through the full ML watchdog pipeline."""
         self.events_processed += 1
+        
+        task_id = event.get("task_id")
+        event_type = event.get("event_type")
+        payload_str = event.get("payload", "{}")
+
+        # Parse JSON payload carefully since it comes from CSV
+        try:
+            payload = json.loads(payload_str)
+            if isinstance(payload, str):
+                payload = json.loads(payload)
+        except Exception:
+            payload = {}
 
         # 1. Feature extraction: build multi-dimensional vector
         self.feature_extractor.ingest(event)
         self.graph_analyzer.ingest(event)
         features = self.feature_extractor.build_feature_vector()
 
-        print(
-            f"[WATCHDOG] Event #{self.events_processed} | "
-            f"type={event.get('event_type')} | "
-            f"task={event.get('task_id')} | "
-            f"Features: fail={features.failure_rate:.3f} "
-            f"retry={features.retry_rate:.3f} "
-            f"latency={features.avg_latency:.3f} "
-            f"throughput={features.throughput:.3f}"
-        )
+        if self.events_processed % 50 == 0:
+            print(
+                f"[WATCHDOG] Event #{self.events_processed} | "
+                f"Features: fail={features.failure_rate:.3f} "
+                f"lat={features.avg_latency:.3f} "
+                f"ttft={features.ttft:.3f} "
+                f"success={features.tool_success_rate:.3f}"
+            )
 
-        # 2. Update the Isolation Forest model
+        # 2. Update the Isolation Forest model (now with rolling scaling)
         self.anomaly_detector.update(features)
 
-        # 3. Cycle detection via DFS on directed task graph
-        task_id = event.get("task_id")
-        if task_id and self.graph_analyzer.detect_cycle(task_id):
-            print(f"[WATCHDOG] ⚠️ REASONING LOOP detected for task: {task_id}")
-            self.alert_manager.reasoning_loop(task_id)
+        # 3. Probabilistic Markov Transition detection
+        if task_id and self.graph_analyzer.detect_abnormal_transition(task_id):
+            print(f"[WATCHDOG] ⚠️ BEHAVIORAL DRIFT detected for task: {task_id}")
+            self.alert_manager.publish_alert(
+                alert_type="BEHAVIORAL_DRIFT",
+                severity="HIGH",
+                message=f"Low probability state transition detected in task {task_id}",
+                metadata={"task_id": task_id}
+            )
 
-        # 4. Anomaly scoring via Isolation Forest
+        # 4. Semantic Loop & Exact Tool Repetition Sniffing
+        if task_id:
+            if event_type == "tool_call":
+                tool_name = payload.get("tool_name", "unknown")
+                arguments = payload.get("arguments", {})
+                if self.semantic_analyzer.ingest_tool(task_id, tool_name, arguments):
+                    print(f"[WATCHDOG] 🛑 INTERVENTION ALERT: Tool {tool_name} looping endlessly in task {task_id}")
+                    self.alert_manager.publish_alert(
+                        alert_type="INTERVENTION_ALERT",
+                        severity="CRITICAL",
+                        message=f"Repeated identical tool call {tool_name} without progress",
+                        metadata={"task_id": task_id, "tool_name": tool_name}
+                    )
+            elif event_type == "model_thought":
+                thought = payload.get("thought", "")
+                if thought and self.semantic_analyzer.ingest_thought(task_id, thought):
+                    print(f"[WATCHDOG] ⚠️ SEMANTIC LOOP detected in task: {task_id}")
+                    self.alert_manager.publish_alert(
+                        alert_type="SEMANTIC_LOOP",
+                        severity="HIGH",
+                        message=f"Agent is hallucinating / stuck in a semantic loop",
+                        metadata={"task_id": task_id}
+                    )
+            elif event_type == "TASK_COMPLETED":
+                # Clean up memory
+                self.semantic_analyzer.clear_session(task_id)
+                self.graph_analyzer.clear_task(task_id)
+
+        # 5. Anomaly scoring via Isolation Forest
         result = self.anomaly_detector.score(features)
         if result["is_anomaly"]:
             print(f"[WATCHDOG] 🚨 ANOMALY DETECTED | score={result['score']:.4f}")
             self.alert_manager.anomaly(result["score"])
 
-        # 5. Log training progress
+        # 6. Log training progress
         buf_size, min_samples = self.anomaly_detector.training_progress()
-        if not self.anomaly_detector.is_trained:
+        if not self.anomaly_detector.is_trained and self.events_processed % 5 == 0:
             print(f"[WATCHDOG] Training progress: {buf_size}/{min_samples} samples")
 
     async def run_csv(self, filepath="/app/data/tool_events_watchdog.csv"):
@@ -83,12 +129,18 @@ class BDHWatchdog:
                         # Parse CSV: session_id, task_id, event_type, payload, timestamp
                         parts = line.split(',')
                         if len(parts) >= 5 and parts[0] != "session_id":  # skip header
+                            # In case payload has commas inside, we should ideally use csv module,
+                            # but simple split is used historically. Let's merge parts[3:-1] as payload if needed.
+                            # The original codebase uses parts[3] as payload.
+                            # Wait, the original code had: payload = parts[3]
+                            # Let's fix that slightly in case of CSV escaping:
+                            # Actually let's stick to original parsing to avoid breaking existing stress testers unless necessary.
                             event = {
                                 "session_id": parts[0],
                                 "task_id": parts[1],
                                 "event_type": parts[2],
-                                "payload": parts[3],
-                                "timestamp": parts[4]
+                                "payload": parts[3] if len(parts) == 5 else ",".join(parts[3:-1]),
+                                "timestamp": parts[-1]
                             }
                             self.process_event(event)
 
