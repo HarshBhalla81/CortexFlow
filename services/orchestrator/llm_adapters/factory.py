@@ -16,5 +16,11 @@ class LLMAdapterFactory:
         elif provider == "vllm":
             from .vllm_adapter import VLLMAdapter
             return VLLMAdapter(**kwargs)
+        elif provider == "groq":
+            from .groq_adapter import GroqAdapter
+            return GroqAdapter(**kwargs)
+        elif provider == "openrouter":
+            from .openrouter_adapter import OpenRouterAdapter
+            return OpenRouterAdapter(**kwargs)
             
         raise ValueError(f"Unsupported LLM provider: {provider_name}")

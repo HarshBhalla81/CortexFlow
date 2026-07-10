@@ -67,25 +67,27 @@ document.getElementById('stress-btn').addEventListener('click', async () => {
     btn.innerText = "Firing...";
     btn.disabled = true;
 
-    // Simple localized load generator
-    for (let i = 0; i < 50; i++) {
-        const sessionId = `ticket-${Math.floor(Math.random() * 10000)}`;
-        const payload = {
-            session_id: sessionId,
-            task_id: sessionId,
-            event_type: "user_prompt",
-            payload: JSON.stringify({ message: "I need a refund for my last order please." }),
-            timestamp: Date.now() / 1000.0
-        };
+    // 1000-request stress test generator
+    for (let batch = 0; batch < 20; batch++) {
+        for (let i = 0; i < 50; i++) {
+            const sessionId = `ticket-${Math.floor(Math.random() * 10000)}`;
+            const payload = {
+                session_id: sessionId,
+                task_id: sessionId,
+                event_type: "user_prompt",
+                payload: JSON.stringify({ message: "I need a refund for my last order please." }),
+                timestamp: Date.now() / 1000.0
+            };
 
-        fetch(gatewayUrl, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        }).catch(err => console.error("Request failed", err));
-        
-        appendLog('tickets-stream', `📩 New Ticket [${sessionId}]: I need a refund...`, 'ticket');
-        await new Promise(r => setTimeout(r, 100)); // 100ms gap
+            fetch(gatewayUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            }).catch(err => console.error("Request failed", err));
+            
+            appendLog('tickets-stream', `📩 New Ticket [${sessionId}]: I need a refund...`, 'ticket');
+        }
+        await new Promise(r => setTimeout(r, 100)); // 100ms gap between batches
     }
 
     btn.innerText = "Launch Stress Test";
