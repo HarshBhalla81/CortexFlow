@@ -52,7 +52,7 @@ The system is purpose-built to address critical challenges in agentic AI infrast
 | **Streaming** | Pathway-powered real-time event ingestion via `pw.io.http.rest_connector` with CSV output sinks |
 | **Fault Tolerance** | Exponential backoff retry (3 attempts), shared `httpx.AsyncClient` with connection pooling (100 max connections) |
 | **Anomaly Detection** | Isolation Forest (scikit-learn) trained online on 8-dimensional feature vectors extracted from live event streams |
-| **Cycle Detection** | DFS-based reasoning loop detection on directed task graphs, catching infinite agent handoff cycles |
+| **Cycle Detection** | Markov-based reasoning loop detection on directed task graphs, catching infinite agent handoff cycles |
 | **LLM Abstraction** | Provider-agnostic adapter pattern supporting OpenAI, Anthropic, vLLM, Groq, and OpenRouter |
 | **Tool Validation** | Pydantic `ToolDispatchSchema` normalizes heterogeneous LLM function-calling formats before streaming |
 | **Vector Store** | FAISS-based similarity search with persistent index storage for context retrieval |
@@ -91,7 +91,7 @@ The system is purpose-built to address critical challenges in agentic AI infrast
                               │  Agent Worker   │    │  BDH Watchdog   │
                               │  - CSV Tailer   │    │  - CSV Tailer   │
                               │  - LLM Adapter  │    │  - Feature Ext. │
-                              │  - Tool Calls   │    │  - Graph DFS    │
+                              │  - Tool Calls   │    │  - Markov Trans    │
                               │  - Dispatch Loop│    │  - Isolation     │
                               └────────────────┘     │    Forest       │
                                                      │  - Alert Mgr    │
@@ -117,7 +117,7 @@ The system is purpose-built to address critical challenges in agentic AI infrast
 | **Gateway** | `gateway` | `8000` | FastAPI entry point; normalizes and forwards events to Pathway |
 | **Pathway Engine** | `pathway_engine` | `8080` | Real-time stream processor; HTTP REST ingestion → CSV output |
 | **Agent Worker** | `cortex_agent_worker` | — | Async CSV tailer; dispatches user prompts to LLM adapters |
-| **BDH Watchdog** | `cortex_watchdog` | — | Neural anomaly detector; Isolation Forest + DFS cycle detection |
+| **BDH Watchdog** | `cortex_watchdog` | — | Neural anomaly detector; Isolation Forest + Markov anomaly detection |
 | **Frontend** | `cortex_frontend` | `3000` | Live telemetry dashboard with WebSocket connectivity |
 | **Nginx** | `cortex_proxy` | `80` | Reverse proxy routing `/` → Frontend, `/api/` → Gateway |
 
@@ -180,7 +180,7 @@ CortexFlow/
 │   │   ├── watchdog/               # Neural BDH Watchdog Pipeline
 │   │   │   ├── watchdog.py         # Main pipeline orchestrator
 │   │   │   ├── feature_extractor.py# 8-dimensional feature vector builder (sliding window)
-│   │   │   ├── graph_analyzer.py   # Directed graph builder + DFS cycle detection
+│   │   │   ├── graph_analyzer.py   # Directed graph builder + Markov anomaly detection
 │   │   │   ├── anomaly_detector.py # Isolation Forest (online training, scoring)
 │   │   │   ├── alert_manager.py    # Alert publishing (REASONING_LOOP, ANOMALY)
 │   │   │   └── models.py           # EventFeatures dataclass
@@ -449,7 +449,7 @@ At request #500, the stress tester injects a **poison pill**:
 2. **Failure Spike** — Injects 5 rapid `TASK_FAILED` events to spike the failure rate
 
 This validates that the BDH Watchdog correctly detects:
-- ✅ The DFS cycle detection triggers `REASONING_LOOP` alert
+- ✅ The Markov anomaly detection triggers `REASONING_LOOP` alert
 - ✅ The Isolation Forest flags the anomalous failure spike
 
 ### Post-Test Metrics Analysis
@@ -557,7 +557,7 @@ CortexFlow ships with a **Dynamic Support Tiering** demonstration that simulates
 | **Architecture** | 25% | Pathway streaming backbone with `rest_connector`, async non-blocking BDH Watchdog (CSV tailing), decoupled LLM adapter factory pattern, Pydantic tool contract validation |
 | **Product Implementation** | 20% | Fully functional client proxy dashboard with WebSocket telemetry, live throughput/latency/alert metrics, built-in stress test trigger, and real-time log streams |
 | **Documentation** | 15% | This comprehensive README, technical bridge plan (`docs/bridge_plan.md`), design specification (`docs/design.md`), inline docstrings, and API schema documentation |
-| **Ideation & Novelty** | 10% | Stress tester with poison pill anomaly injection for chaos engineering, DFS-based reasoning loop detection, online Isolation Forest retraining, and 8-dimensional feature vector behavioral analysis |
+| **Ideation & Novelty** | 10% | Stress tester with poison pill anomaly injection for chaos engineering, Markov-based reasoning loop detection, online Isolation Forest retraining, and 8-dimensional feature vector behavioral analysis |
 
 ---
 
