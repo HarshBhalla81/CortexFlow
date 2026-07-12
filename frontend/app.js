@@ -1,5 +1,5 @@
-const wsUrl = "ws://localhost:8000/ws/telemetry"; // Match your Gateway WS endpoint
-const gatewayUrl = "http://localhost:8000/process"; // Pathway passthrough
+const wsUrl = "wss://shiny-engine-69pg6j6x6r7x254g6-8000.app.github.dev/ws/telemetry"; // Match your Gateway WS endpoint
+const gatewayUrl = "https://shiny-engine-69pg6j6x6r7x254g6-8000.app.github.dev/process"; // Pathway passthrough
 
 let socket;
 let epsCount = 0;
@@ -72,27 +72,36 @@ document.getElementById('stress-btn').addEventListener('click', async () => {
     btn.innerText = "Firing...";
     btn.disabled = true;
 
-    // 1000-request stress test generator
-    for (let batch = 0; batch < 20; batch++) {
-        for (let i = 0; i < 50; i++) {
-            const sessionId = `ticket-${Math.floor(Math.random() * 10000)}`;
-            const payload = {
-                session_id: sessionId,
-                task_id: sessionId,
-                event_type: "user_prompt",
-                payload: JSON.stringify({ message: "I need a refund for my last order please." }),
-                timestamp: Date.now() / 1000.0
-            };
+    const prompts = [
+        "I need a refund for my last order please.",
+        "I'm locked out of my account, please reset my password.",
+        "How do I track my shipment?",
+        "I need to speak to a human manager immediately!",
+        "My billing address is incorrect, how do I change it?"
+    ];
 
-            fetch(gatewayUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            }).catch(err => console.error("Request failed", err));
-            
-            appendLog('tickets-stream', `📩 New Ticket [${sessionId}]: I need a refund...`, 'ticket');
-        }
-        await new Promise(r => setTimeout(r, 100)); // 100ms gap between batches
+    // Send a smaller, realistic batch of 20 diverse tickets
+    for (let i = 0; i < 20; i++) {
+        const sessionId = `ticket-${Math.floor(Math.random() * 10000)}`;
+        const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+        
+        const payload = {
+            session_id: sessionId,
+            task_id: sessionId,
+            event_type: "user_prompt",
+            payload: JSON.stringify({ message: randomPrompt }),
+            timestamp: Date.now() / 1000.0
+        };
+
+        fetch(gatewayUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        }).catch(err => console.error("Request failed", err));
+        
+        appendLog('tickets-stream', `📩 New Ticket [${sessionId}]: ${randomPrompt.substring(0,25)}...`, 'ticket');
+        
+        await new Promise(r => setTimeout(r, 200)); // 200ms gap to avoid API rate limits
     }
 
     btn.innerText = "Launch Stress Test";
