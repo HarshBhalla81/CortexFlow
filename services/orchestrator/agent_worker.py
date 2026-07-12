@@ -85,30 +85,33 @@ async def process_user_prompt(session_id: str, payload_str: str, adapter):
         {"role": "user", "content": f"Ticket ID: {session_id}\nIssue: {user_message}"}
     ]
 
-    print(f"[AGENT WORKER] Processing session {session_id} with LLM...")
-    response = await adapter.generate_response(messages, tools=SUPPORT_TOOLS)
-    
-    async with httpx.AsyncClient() as client:
-        # Send thoughts back to stream
-        if response.get("content"):
-            await dispatch_to_gateway(
-                client, 
-                session_id, 
-                "model_thought", 
-                {"thought": response["content"]}
-            )
+    print(f"[AGENT WORKER] Processing session {session_id} with LLM...", flush=True)
+    try:
+        response = await adapter.generate_response(messages, tools=SUPPORT_TOOLS)
         
-        # Send tool calls back to stream
-        for tc in response.get("tool_calls", []):
-            await dispatch_to_gateway(
-                client,
-                session_id,
-                "tool_call",
-                {"tool_name": tc.get("name"), "arguments": tc.get("arguments")}
-            )
+        async with httpx.AsyncClient() as client:
+            # Send thoughts back to stream
+            if response.get("content"):
+                await dispatch_to_gateway(
+                    client, 
+                    session_id, 
+                    "model_thought", 
+                    {"thought": response["content"]}
+                )
+            
+            # Send tool calls back to stream
+            for tc in response.get("tool_calls", []):
+                await dispatch_to_gateway(
+                    client,
+                    session_id,
+                    "tool_call",
+                    {"tool_name": tc.get("name"), "arguments": tc.get("arguments")}
+                )
+    except Exception as e:
+        print(f"[AGENT WORKER] ERROR in LLM generation for session {session_id}: {repr(e)}", flush=True)
 
 async def main():
-    print("[AGENT WORKER] Starting up...")
+    print("[AGENT WORKER] Starting up...", flush=True)
     
     provider = os.getenv("LLM_PROVIDER", "openai")
     adapter = LLMAdapterFactory.get_adapter(provider)
