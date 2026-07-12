@@ -126,18 +126,18 @@ async def main():
             
             if not lines:
                 await asyncio.sleep(1)
-                continue
-                
+            import csv
             for line in lines:
-                parts = line.strip().split(',')
-                if len(parts) >= 5 and parts[0] != "session_id":
-                    session_id = parts[0]
-                    event_type = parts[2]
-                    payload_str = parts[3]
-                    
-                    if event_type == "user_prompt":
-                        # Fire and forget processing
-                        asyncio.create_task(process_user_prompt(session_id, payload_str, adapter))
+                reader = csv.reader([line.strip()])
+                for parts in reader:
+                    if len(parts) >= 5 and parts[0] != "session_id":
+                        session_id = parts[0]
+                        event_type = parts[2]
+                        payload_str = parts[3]
+                        
+                        if event_type == "user_prompt":
+                            # Fire and forget processing
+                            asyncio.create_task(process_user_prompt(session_id, payload_str, adapter))
 
 if __name__ == "__main__":
     asyncio.run(main())
