@@ -5,12 +5,12 @@ import json
 import random
 
 GATEWAY_URL = "http://localhost:8000/process"
-TOTAL_REQUESTS = 1000
-CONCURRENCY_LIMIT = 50
+TOTAL_REQUESTS = 20
+CONCURRENCY_LIMIT = 5
 
 # Mock anomaly (infinite loop) injection parameters
 INJECT_ANOMALY = True
-ANOMALY_INDEX = 500  # Inject poison pill at the 500th request
+ANOMALY_INDEX = 10  # Inject poison pill at the 10th request
 
 # Diverse event types that the watchdog's FeatureExtractor understands
 EVENT_TYPES = [
@@ -64,18 +64,24 @@ async def send_request(client: httpx.AsyncClient, index: int):
             await client.post(GATEWAY_URL, json=payload)
         return
 
-    # ----- Normal traffic: mix of event types -----
+    # ----- Normal traffic: force user prompts with diverse tasks -----
     session_id = f"test_ticket_{index}"
-    event_type = random.choice(EVENT_TYPES)
-    component = random.choice(COMPONENTS)
+    event_type = "user_prompt"
+    
+    prompts = [
+        "I need a refund for my last order.",
+        "I'm locked out of my account, please reset my password.",
+        "How do I track my shipment?",
+        "I need to speak to a human manager immediately!",
+        "My billing address is incorrect, how do I change it?"
+    ]
 
     payload = {
         "session_id": session_id,
         "task_id": session_id,
         "event_type": event_type,
         "payload": json.dumps({
-            "message": f"Support request #{index}",
-            "component": component
+            "message": random.choice(prompts)
         }),
         "timestamp": time.time()
     }

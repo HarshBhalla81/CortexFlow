@@ -7,3 +7,7 @@ def process_refund(ticket_id: str, amount: float):
 def escalate_to_human(ticket_id: str, reason: str):
     print(f"[TOOL MICROSERVICE] Escalating ticket {ticket_id} to human. Reason: {reason}")
     return {"status": "success", "message": f"Ticket escalated to Tier 2 support."}
+
+def reset_password(user_email: str):
+    print(f"[TOOL MICROSERVICE] Sending password reset link to {user_email}")
+    return {"status": "success", "message": f"Password reset link sent to {user_email}."}

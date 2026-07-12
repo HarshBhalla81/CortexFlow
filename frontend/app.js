@@ -19,6 +19,11 @@ function connectWebSocket() {
         // Update Metrics
         if (data.metrics) {
             document.getElementById('eps-val').innerHTML = `${data.metrics.events_per_sec} <span class="unit">EPS</span>`;
+            
+            // Wire up the missing Latency DOM element
+            if (data.metrics.avg_latency !== undefined) {
+                document.getElementById('ttft-val').innerHTML = `${parseFloat(data.metrics.avg_latency).toFixed(1)} <span class="unit">ms</span>`;
+            }
         }
 
         // Handle Events

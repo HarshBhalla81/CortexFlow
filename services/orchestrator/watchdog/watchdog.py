@@ -1,6 +1,8 @@
 import asyncio
 import os
 import json
+import time
+import redis.asyncio as redis
 from watchdog.feature_extractor import FeatureExtractor
 from watchdog.graph_analyzer import GraphAnalyzer
 from watchdog.anomaly_detector import AnomalyDetector
@@ -10,7 +12,7 @@ from watchdog.semantic_analyzer import SemanticAnalyzer
 
 class BDHWatchdog:
 
-    def __init__(self, redis_client=None):
+    def __init__(self):
         self.feature_extractor = FeatureExtractor()
         self.graph_analyzer = GraphAnalyzer()
         self.anomaly_detector = AnomalyDetector()
@@ -18,8 +20,10 @@ class BDHWatchdog:
         self.semantic_analyzer = SemanticAnalyzer()
         self.last_id = "0"
         self.events_processed = 0
+        self.start_time = time.time()
+        self.total_alerts = 0
 
-    def process_event(self, event):
+    async def process_event(self, event, redis_client=None):
         """Process a single event through the full ML watchdog pipeline."""
         self.events_processed += 1
         
@@ -40,7 +44,10 @@ class BDHWatchdog:
         self.graph_analyzer.ingest(event)
         features = self.feature_extractor.build_feature_vector()
 
-        if self.events_processed % 50 == 0:
+        if self.events_processed % 10 == 0:
+            elapsed = time.time() - self.start_time
+            eps = self.events_processed / elapsed if elapsed > 0 else 0.0
+            
             print(
                 f"[WATCHDOG] Event #{self.events_processed} | "
                 f"Features: fail={features.failure_rate:.3f} "
@@ -48,6 +55,17 @@ class BDHWatchdog:
                 f"ttft={features.ttft:.3f} "
                 f"success={features.tool_success_rate:.3f}"
             )
+            
+            if redis_client:
+                telemetry = {
+                    "events_per_sec": round(eps, 1),
+                    "avg_latency": features.avg_latency,
+                    "alerts": self.total_alerts
+                }
+                await redis_client.publish("telemetry_stream", json.dumps({
+                    "status": "live", 
+                    "metrics": telemetry
+                }))
 
         # 2. Update the Isolation Forest model (now with rolling scaling)
         self.anomaly_detector.update(features)
@@ -55,12 +73,18 @@ class BDHWatchdog:
         # 3. Probabilistic Markov Transition detection
         if task_id and self.graph_analyzer.detect_abnormal_transition(task_id):
             print(f"[WATCHDOG] ⚠️ BEHAVIORAL DRIFT detected for task: {task_id}")
+            self.total_alerts += 1
             self.alert_manager.publish_alert(
                 alert_type="BEHAVIORAL_DRIFT",
                 severity="HIGH",
                 message=f"Low probability state transition detected in task {task_id}",
                 metadata={"task_id": task_id}
             )
+            if redis_client:
+                await redis_client.publish("telemetry_stream", json.dumps({
+                    "event_type": "anomaly_alert",
+                    "message": f"Behavioral drift in {task_id}"
+                }))
 
         # 4. Semantic Loop & Exact Tool Repetition Sniffing
         if task_id:
@@ -69,22 +93,34 @@ class BDHWatchdog:
                 arguments = payload.get("arguments", {})
                 if self.semantic_analyzer.ingest_tool(task_id, tool_name, arguments):
                     print(f"[WATCHDOG] 🛑 INTERVENTION ALERT: Tool {tool_name} looping endlessly in task {task_id}")
+                    self.total_alerts += 1
                     self.alert_manager.publish_alert(
                         alert_type="INTERVENTION_ALERT",
                         severity="CRITICAL",
                         message=f"Repeated identical tool call {tool_name} without progress",
                         metadata={"task_id": task_id, "tool_name": tool_name}
                     )
+                    if redis_client:
+                        await redis_client.publish("telemetry_stream", json.dumps({
+                            "event_type": "anomaly_alert",
+                            "message": f"Tool loop in {task_id}"
+                        }))
             elif event_type == "model_thought":
                 thought = payload.get("thought", "")
                 if thought and self.semantic_analyzer.ingest_thought(task_id, thought):
                     print(f"[WATCHDOG] ⚠️ SEMANTIC LOOP detected in task: {task_id}")
+                    self.total_alerts += 1
                     self.alert_manager.publish_alert(
                         alert_type="SEMANTIC_LOOP",
                         severity="HIGH",
                         message=f"Agent is hallucinating / stuck in a semantic loop",
                         metadata={"task_id": task_id}
                     )
+                    if redis_client:
+                        await redis_client.publish("telemetry_stream", json.dumps({
+                            "event_type": "anomaly_alert",
+                            "message": f"Semantic loop in {task_id}"
+                        }))
             elif event_type == "TASK_COMPLETED":
                 # Clean up memory
                 self.semantic_analyzer.clear_session(task_id)
@@ -94,7 +130,13 @@ class BDHWatchdog:
         result = self.anomaly_detector.score(features)
         if result["is_anomaly"]:
             print(f"[WATCHDOG] 🚨 ANOMALY DETECTED | score={result['score']:.4f}")
+            self.total_alerts += 1
             self.alert_manager.anomaly(result["score"])
+            if redis_client:
+                await redis_client.publish("telemetry_stream", json.dumps({
+                    "event_type": "anomaly_alert",
+                    "message": f"Statistical anomaly (Isolation Forest)"
+                }))
 
         # 6. Log training progress
         buf_size, min_samples = self.anomaly_detector.training_progress()
@@ -105,6 +147,12 @@ class BDHWatchdog:
         """Asynchronously tail the Pathway CSV output and feed events to the watchdog pipeline."""
         last_pos = 0
         print(f"[WATCHDOG] Starting async CSV watcher on: {filepath}")
+        
+        redis_url = os.getenv("REDIS_URL")
+        redis_client = None
+        if redis_url:
+            print(f"[WATCHDOG] Connecting to Redis at {redis_url}")
+            redis_client = redis.from_url(redis_url)
 
         while True:
             if not os.path.exists(filepath):
@@ -142,7 +190,7 @@ class BDHWatchdog:
                                 "payload": parts[3] if len(parts) == 5 else ",".join(parts[3:-1]),
                                 "timestamp": parts[-1]
                             }
-                            self.process_event(event)
+                            await self.process_event(event, redis_client)
 
                     # Yield control to event loop after processing a batch
                     await asyncio.sleep(0)

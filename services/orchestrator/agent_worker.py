@@ -41,6 +41,20 @@ SUPPORT_TOOLS = [
                 "required": ["ticket_id", "reason"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "reset_password",
+            "description": "Send a password reset link to the user.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "user_email": {"type": "string"}
+                },
+                "required": ["user_email"]
+            }
+        }
     }
 ]
 

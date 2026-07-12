@@ -6,6 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI, Body, Request, WebSocket, WebSocketDisconnect
+import redis.asyncio as redis
 
 from routing.health import router as health_router
 from routing.task import router as task_router
@@ -54,14 +55,30 @@ def get_metrics():
 @app.websocket("/ws/telemetry")
 async def telemetry_endpoint(websocket: WebSocket):
     await websocket.accept()
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+    redis_client = None
+    pubsub = None
     try:
-        while True:
-            # Stream live telemetry metrics
-            await asyncio.sleep(2)
-            # In a real scenario, this reads from Pathway's live telemetry or Redis
-            await websocket.send_json({"status": "live", "metrics": {"events_per_sec": 5.2, "active_agents": 3}})
+        redis_client = redis.from_url(redis_url)
+        pubsub = redis_client.pubsub()
+        await pubsub.subscribe("telemetry_stream")
+        
+        async for message in pubsub.listen():
+            if message['type'] == 'message':
+                data = json.loads(message['data'])
+                await websocket.send_json(data)
     except WebSocketDisconnect:
         logger.info("Telemetry client disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+    finally:
+        try:
+            if pubsub:
+                await pubsub.unsubscribe("telemetry_stream")
+            if redis_client:
+                await redis_client.aclose()
+        except:
+            pass
 
 
 
