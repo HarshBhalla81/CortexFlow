@@ -25,14 +25,16 @@ class FeatureExtractor:
         event_type = event.get("event_type")
         task_id = event.get("task_id")
 
-        if event_type == "TASK_STARTED":
-            self.task_start_times[task_id] = time.time()
+        if event_type == "user_prompt":
+            timestamp = float(event.get("timestamp", time.time()))
+            self.task_start_times[task_id] = timestamp
             self.active_tasks.add(task_id)
 
         elif event_type == "TASK_COMPLETED":
             self.completed_count += 1
             if task_id in self.task_start_times:
-                latency = time.time() - self.task_start_times[task_id]
+                timestamp = float(event.get("timestamp", time.time()))
+                latency = timestamp - self.task_start_times[task_id]
                 self.latencies.append(latency)
                 del self.task_start_times[task_id]
             self.active_tasks.discard(task_id)
@@ -52,7 +54,8 @@ class FeatureExtractor:
                 
             # Track TTFT on the first response event
             if task_id in self.task_start_times and task_id not in self.ttft_tracked_tasks:
-                ttft = time.time() - self.task_start_times[task_id]
+                timestamp = float(event.get("timestamp", time.time()))
+                ttft = timestamp - self.task_start_times[task_id]
                 self.ttft_list.append(ttft)
                 self.ttft_tracked_tasks.add(task_id)
 

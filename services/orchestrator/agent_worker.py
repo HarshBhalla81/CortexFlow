@@ -64,7 +64,7 @@ async def dispatch_to_gateway(client: httpx.AsyncClient, session_id: str, event_
         "task_id": session_id,
         "task_type": event_type,
         "payload": payload,
-        "timestamp": datetime.utcnow().isoformat() + "Z"
+        "timestamp": time.time()
     }
     try:
         response = await client.post(GATEWAY_URL, json=task_payload)
@@ -107,6 +107,14 @@ async def process_user_prompt(session_id: str, payload_str: str, adapter):
                     "tool_call",
                     {"tool_name": tc.get("name"), "arguments": tc.get("arguments")}
                 )
+            
+            # forcefully emit a TASK_COMPLETED event back to the Gateway
+            await dispatch_to_gateway(
+                client,
+                session_id,
+                "TASK_COMPLETED",
+                {"message": "Agent execution finished."}
+            )
     except Exception as e:
         print(f"[AGENT WORKER] ERROR in LLM generation for session {session_id}: {repr(e)}", flush=True)
 

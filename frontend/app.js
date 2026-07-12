@@ -33,6 +33,8 @@ function connectWebSocket() {
             document.getElementById('alerts-val').innerText = alerts + 1;
         } else if (data.event_type === "tool_call") {
             appendLog('agent-stream', `🔧 Tool Dispatch: ${data.tool_name}(${JSON.stringify(data.arguments)})`, 'tool');
+        } else if (data.event_type === "model_thought") {
+            appendLog('agent-stream', `🧠 Agent Thought: ${data.thought}`, 'thought');
         } else if (data.event_type === "user_prompt") {
             appendLog('tickets-stream', `📩 New Ticket [${data.session_id}]: ${data.payload.message}`, 'ticket');
         }
