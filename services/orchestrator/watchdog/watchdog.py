@@ -198,7 +198,8 @@ class BDHWatchdog:
             except Exception as e:
                 print(f"[WATCHDOG] Error reading CSV: {e}")
                 await asyncio.sleep(2)
-
-    def run(self):
-        """Legacy sync entry point — wraps the async runner."""
-        asyncio.run(self.run_csv())
+    # the below function is not in use.
+    # we have created a separate file watchdog_runner which runs the same command when the container calls it.
+    # def run(self):
+    #     """Legacy sync entry point — wraps the async runner."""
+    #     asyncio.run(self.run_csv())

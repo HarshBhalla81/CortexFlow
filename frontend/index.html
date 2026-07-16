@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -16,6 +18,8 @@
             </div>
             <div class="controls">
                 <button id="stress-btn" class="btn primary">Launch Stress Test</button>
+                <button id="ml-test-btn" class="btn secondary">Test Watchdog</button>
+                <button id="metrics-test-btn" class="btn secondary">Analyze Metrics</button>
             </div>
         </header>
 
@@ -42,7 +46,7 @@
                         <div class="empty-state">Awaiting inbound traffic...</div>
                     </div>
                 </div>
-                
+
                 <div class="stream-box right">
                     <h2>Agent Invocations & Tools</h2>
                     <div id="agent-stream" class="log-window">
@@ -50,9 +54,18 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="stream-box" style="margin-top: 20px; width: 100%;">
+                <h2>Test Runner Output</h2>
+                <div id="test-output-stream" class="log-window" style="height: 250px;">
+                    <div class="empty-state">Ready to run the backend tests...</div>
+                </div>
+            </div>
+
         </main>
     </div>
 
     <script src="app.js"></script>
 </body>
+
 </html>
