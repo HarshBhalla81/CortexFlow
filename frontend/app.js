@@ -1,6 +1,6 @@
 const wsUrl = "wss://shiny-engine-69pg6j6x6r7x254g6-8000.app.github.dev/ws/telemetry"; // Match your Gateway WS endpoint
 const gatewayUrl = "https://shiny-engine-69pg6j6x6r7x254g6-8000.app.github.dev/process"; // Pathway passthrough
-const testRunnerUrl = "http://localhost:8001/run-test";
+const testRunnerUrl = "https://shiny-engine-69pg6j6x6r7x254g6-8001.app.github.dev/run-test";
 let socket;
 let epsCount = 0;
 let totalRequests = 0;
