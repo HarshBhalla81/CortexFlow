@@ -4,7 +4,7 @@ import time
 import json
 import random
 
-GATEWAY_URL = "http://localhost:8000/process"
+GATEWAY_URL = "http://gateway:8000/process"
 TOTAL_REQUESTS = 20
 CONCURRENCY_LIMIT = 5
 
