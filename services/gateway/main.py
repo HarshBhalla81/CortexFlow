@@ -21,9 +21,13 @@ async def lifespan(app: FastAPI):
     # Startup: Initialize shared HTTP client with higher timeout and connection limits for stress testing
     limits = httpx.Limits(max_connections=100, max_keepalive_connections=20)
     app.state.http_client = httpx.AsyncClient(timeout=30.0, limits=limits)
+    # Initialize Redis client for live event publishing
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+    app.state.redis_client = redis.from_url(redis_url)
     yield
-    # Shutdown: Close client session
+    # Shutdown: Close clients
     await app.state.http_client.aclose()
+    await app.state.redis_client.aclose()
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -102,11 +106,43 @@ def _normalize_payload(payload: dict) -> dict:
 @app.post("/process")
 async def process_event(request: Request, payload: dict = Body(...)):
     normalized = _normalize_payload(payload)
+    
+    # Instantly publish to Redis for live frontend streaming
+    redis_client = getattr(request.app.state, "redis_client", None)
+    if redis_client:
+        try:
+            # Build the message the frontend expects
+            event_type = normalized.get("event_type", "")
+            msg = {
+                "event_type": event_type,
+                "session_id": normalized.get("session_id"),
+                "task_id": normalized.get("task_id")
+            }
+            # Parse the payload string back to dict for the frontend
+            try:
+                parsed_payload = json.loads(normalized.get("payload", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                parsed_payload = {}
+            
+            if event_type == "user_prompt":
+                msg["payload"] = parsed_payload
+            elif event_type == "tool_call":
+                msg["tool_name"] = parsed_payload.get("tool_name", "unknown")
+                msg["arguments"] = parsed_payload.get("arguments", {})
+            elif event_type == "model_thought":
+                msg["thought"] = parsed_payload.get("thought", "")
+            else:
+                msg["payload"] = parsed_payload
+            
+            await redis_client.publish("telemetry_stream", json.dumps(msg))
+        except Exception as e:
+            logger.error(f"Redis publish error: {e}")
+    
+    # Forward to Pathway for processing
     client = getattr(request.app.state, "http_client", None)
     if client is not None:
         await _forward_with_retry(client, PATHWAY_URL, normalized)
     else:
-        # Fallback if lifespan client is not initialized (e.g. in some TestClient scenarios)
         try:
             limits = httpx.Limits(max_connections=100, max_keepalive_connections=20)
             async with httpx.AsyncClient(timeout=30.0, limits=limits) as fallback_client:
