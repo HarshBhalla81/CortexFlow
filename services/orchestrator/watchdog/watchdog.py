@@ -39,6 +39,24 @@ class BDHWatchdog:
         except Exception:
             payload = {}
 
+        # Forward raw events to frontend for Live Stream UI
+        if redis_client and event_type in ["user_prompt", "tool_call", "model_thought"]:
+            msg = {
+                "event_type": event_type,
+                "session_id": event.get("session_id"),
+                "task_id": task_id
+            }
+            if event_type == "user_prompt":
+                msg["payload"] = payload
+            elif event_type == "tool_call":
+                msg["tool_name"] = payload.get("tool_name", "unknown")
+                msg["arguments"] = payload.get("arguments", {})
+            elif event_type == "model_thought":
+                msg["thought"] = payload.get("thought", "")
+                
+            # Fire-and-forget publish
+            asyncio.create_task(redis_client.publish("telemetry_stream", json.dumps(msg)))
+
         # 1. Feature extraction: build multi-dimensional vector
         self.feature_extractor.ingest(event)
         self.graph_analyzer.ingest(event)
