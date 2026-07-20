@@ -74,7 +74,16 @@ function appendLog(elementId, message, typeClass) {
 
 async function runBackendTest(testName, btnID) {
     const btn = document.getElementById(btnID);
+    const allBtns = document.querySelectorAll('.controls .btn');
     const originalText = btn.innerText;
+
+    // Switch active state: deactivate all, activate clicked
+    allBtns.forEach(b => {
+        b.classList.remove('active', 'primary', 'running');
+        b.classList.add('secondary');
+    });
+    btn.classList.remove('secondary');
+    btn.classList.add('active', 'running');
     btn.innerText = "Running...";
     btn.disabled = true;
 
@@ -100,6 +109,7 @@ async function runBackendTest(testName, btnID) {
         appendLog('test-output-stream', `Failed to connect to test runner: ${err.message}`, 'alert');
     }
     
+    btn.classList.remove('running');
     btn.innerText = originalText;
     btn.disabled = false;
 }
