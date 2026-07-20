@@ -15,7 +15,8 @@ app.add_middleware(
 async def run_test(test_name: str):
     allowed_tests = {
         "stress": "tests/stress_tester.py",
-        "metrics": "tests/metrics_analyzer.py"
+        "metrics": "tests/metrics_analyzer.py",
+        "watchdog": "tests/test_watchdog.py"
     }
 
     if test_name not in allowed_tests:

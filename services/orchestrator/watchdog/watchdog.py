@@ -39,8 +39,8 @@ class BDHWatchdog:
         except Exception:
             payload = {}
 
-        # Forward raw events to frontend for Live Stream UI
-        if redis_client and event_type in ["user_prompt", "tool_call", "model_thought"]:
+        # Forward ALL events to frontend for Live Stream UI
+        if redis_client:
             msg = {
                 "event_type": event_type,
                 "session_id": event.get("session_id"),
@@ -53,16 +53,20 @@ class BDHWatchdog:
                 msg["arguments"] = payload.get("arguments", {})
             elif event_type == "model_thought":
                 msg["thought"] = payload.get("thought", "")
+            else:
+                msg["payload"] = payload
                 
-            # Fire-and-forget publish
-            asyncio.create_task(redis_client.publish("telemetry_stream", json.dumps(msg)))
+            try:
+                await redis_client.publish("telemetry_stream", json.dumps(msg))
+            except Exception as e:
+                print(f"[WATCHDOG] Redis publish error: {e}")
 
         # 1. Feature extraction: build multi-dimensional vector
         self.feature_extractor.ingest(event)
         self.graph_analyzer.ingest(event)
         features = self.feature_extractor.build_feature_vector()
 
-        if self.events_processed % 10 == 0:
+        if self.events_processed % 5 == 0:
             elapsed = time.time() - self.start_time
             eps = self.events_processed / elapsed if elapsed > 0 else 0.0
             

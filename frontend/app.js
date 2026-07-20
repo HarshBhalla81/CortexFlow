@@ -36,7 +36,10 @@ function connectWebSocket() {
         } else if (data.event_type === "model_thought") {
             appendLog('agent-stream', `🧠 Agent Thought: ${data.thought}`, 'thought');
         } else if (data.event_type === "user_prompt") {
-            appendLog('tickets-stream', `📩 New Ticket [${data.session_id}]: ${data.payload.message}`, 'ticket');
+            const msg = (data.payload && data.payload.message) ? data.payload.message : JSON.stringify(data.payload || {});
+            appendLog('tickets-stream', `📩 New Ticket [${data.session_id}]: ${msg}`, 'ticket');
+        } else if (data.event_type === "TASK_STARTED" || data.event_type === "TASK_COMPLETED" || data.event_type === "TASK_FAILED" || data.event_type === "AGENT_COMPLETED") {
+            appendLog('agent-stream', `⚡ ${data.event_type} [${data.session_id || data.task_id}]`, 'thought');
         }
     };
 
@@ -103,6 +106,7 @@ async function runBackendTest(testName, btnID) {
 
 // Bind the new buttons
 document.getElementById('metrics-test-btn').addEventListener('click', () => runBackendTest('metrics', 'metrics-test-btn'));
+document.getElementById('ml-test-btn').addEventListener('click', () => runBackendTest('watchdog', 'ml-test-btn'));
 // Override the old stress test button to run the backend Python script instead of the JS loop
 document.getElementById('stress-btn').addEventListener('click', () => runBackendTest('stress', 'stress-btn'));
 
