@@ -28,7 +28,7 @@ function connectWebSocket() {
 
         // Handle Events
         if (data.event_type === "anomaly_alert") {
-            appendLog('agent-stream', `⚠️ WATCHDOG ALERT: ${data.message}`, 'alert');
+            appendLog('agent-stream', `⚠️ WATCHDOG ALERT: ${data.message || 'Anomaly detected'}`, 'alert');
             let alerts = parseInt(document.getElementById('alerts-val').innerText);
             document.getElementById('alerts-val').innerText = alerts + 1;
         } else if (data.event_type === "tool_call") {
