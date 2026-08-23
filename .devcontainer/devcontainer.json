@@ -1,9 +1,6 @@
 {
   "name": "CortexFlow Workspace",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.9-bullseye",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-  },
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
   "forwardPorts": [3000, 8000, 8001],
   "portsAttributes": {
     "3000": {
