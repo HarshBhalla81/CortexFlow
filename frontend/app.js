@@ -1,6 +1,17 @@
-const wsUrl = "wss://shiny-engine-69pg6j6x6r7x254g6-8000.app.github.dev/ws/telemetry"; // Match your Gateway WS endpoint
-const gatewayUrl = "https://shiny-engine-69pg6j6x6r7x254g6-8000.app.github.dev/process"; // Pathway passthrough
-const testRunnerUrl = "https://shiny-engine-69pg6j6x6r7x254g6-8001.app.github.dev/run-test";
+const hostname = window.location.hostname;
+const isCodespaces = hostname.includes('github.dev');
+
+const wsUrl = isCodespaces 
+    ? `wss://${hostname.replace('-3000', '-8000')}/ws/telemetry`
+    : `ws://localhost:8000/ws/telemetry`;
+
+const gatewayUrl = isCodespaces
+    ? `https://${hostname.replace('-3000', '-8000')}/process`
+    : `http://localhost:8000/process`;
+
+const testRunnerUrl = isCodespaces
+    ? `https://${hostname.replace('-3000', '-8001')}/run-test`
+    : `http://localhost:8001/run-test`;
 let socket;
 let epsCount = 0;
 let totalRequests = 0;
